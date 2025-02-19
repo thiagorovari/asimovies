@@ -25,5 +25,8 @@ export class LoginComponent {
       alert('Preencha todos os campos');
     }
   }
+  loginGoogle() {
+    this.auth.loginWithGoogle();
+  }
 
 }

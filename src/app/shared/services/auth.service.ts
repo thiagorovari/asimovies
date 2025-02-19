@@ -4,6 +4,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { Router } from '@angular/router';
 import { UserInterface } from '../interfaces/user-interface';
 import { Observable, of, switchMap } from 'rxjs';
+import firebase from 'firebase/compat/app';
 
 @Injectable({
   providedIn: 'root'
@@ -57,6 +58,16 @@ export class AuthService {
     .catch((error) => {
       console.log('Login error:', error); // Log para verificar erros de login
     });
+  }
+  async loginWithGoogle() {
+    try {
+      const result = await this.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      console.log('Usuário logado:', result.user);
+      return result.user;
+    } catch (error) {
+      console.error('Erro no login com Google:', error);
+      return null;
+    }
   }
 
   redefinirSenha(email: string){
