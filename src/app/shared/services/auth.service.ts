@@ -42,16 +42,21 @@ export class AuthService {
     return this.firestore.collection('users').doc(id).set(user);
   }
 
-  login(email:string, password: string){
-    this.auth.signInWithEmailAndPassword(email,password).then((userCredential)=>{
-      if(userCredential.user?.emailVerified){
-        console.log('sucesso')
+  login(email: string, password: string) {
+    console.log('Login method called'); // Log para verificar se o método está sendo chamado
+    this.auth.signInWithEmailAndPassword(email, password).then((userCredential) => {
+      console.log('User credential:', userCredential); // Log para verificar as credenciais do usuário
+      if (userCredential.user?.emailVerified) {
+        console.log('Email is verified'); // Log para verificar se o email está verificado
+        console.log('sucesso');
         this.router.navigate(['/home']);
+      } else {
+        console.log('Email is not verified'); // Log para verificar se o email não está verificado
       }
     })
-    .catch((error)=>{
-      console.log(error)
-    })
+    .catch((error) => {
+      console.log('Login error:', error); // Log para verificar erros de login
+    });
   }
 
   redefinirSenha(email: string){
