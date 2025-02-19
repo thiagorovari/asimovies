@@ -29,5 +29,17 @@ export class CadastroComponent {
       alert('Preencha todos os campos');
     }
   }
+  cadastrarComGoogle() {
+    this.auth.loginWithGoogle()
+      .then(user => {
+        if (user) {
+          console.log('Usuário cadastrado com Google:', user);
+          
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao cadastrar com Google:', error);
+      });
+  }
   
 }
