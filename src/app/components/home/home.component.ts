@@ -35,6 +35,18 @@ export class HomeComponent {
     })
   }
 
+  updateMovie(id:string){
+    this.showAddMovieModal = !this.showAddMovieModal; 
+    
+    this.databaseService.deleteDocument('movies',id).then(()=>{
+      console.log("Documento excluído com sucesso.")
+    }).catch(error=>{
+      console.log(error)
+    })
+
+     
+  }
+
   toggleAddMovieModal(){
     this.showAddMovieModal = !this.showAddMovieModal; 
   }

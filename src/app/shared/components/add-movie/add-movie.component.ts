@@ -48,16 +48,36 @@ export class AddMovieComponent {
   }
 
   onSubmit(){
-    if(this.movieForm.valid){
-      const formData = this.movieForm.value;
+  if (this.movieForm.valid) {
+    const formData = this.movieForm.value;
 
-      this.databaseService.addDocument('movies',formData).then(()=>{
-        console.log('Documento Adicionado!')
+    if (this.selectedFile) {
+      const filePath = `movies/${this.selectedFile.name}`;
+      const fileRef = this.storage.ref(filePath);
+      const task = this.storage.upload(filePath, this.selectedFile);
+
+      task.snapshotChanges().subscribe(() => {
+        fileRef.getDownloadURL().subscribe((url) => {
+          formData.photo_path = url;
+          this.databaseService.addDocument('movies', formData).then(() => {
+            console.log('Documento Adicionado!');
+            this.movieForm.reset();
+            this.previewUrl = null;
+            this.selectedFile = null;
+          }).catch((error) => {
+            console.log(error);
+          });
+        });
+      });
+    } else {
+      this.databaseService.addDocument('movies', formData).then(() => {
+        console.log('Documento Adicionado!');
         this.movieForm.reset();
-      }).catch((error)=>{
-        console.log(error)
-      })
+      }).catch((error) => {
+        console.log(error);
+      });
     }
+  }
   }
 
   // variável que emite um evento para o componente da home
