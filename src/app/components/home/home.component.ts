@@ -12,11 +12,13 @@ export class HomeComponent {
   // VARIÁVEIS
 
   showAddMovieModal: boolean = false; // controle de exibição do modal de adição de filme
+  editMovieModal: boolean = false; // controle de exibição do modal de edição de filme
   searchQuery: string = ''; // controle de pesquisa de filmes
   displayedMovies: MovieInterface[] = []; // filmes exibidos na tela
   movies: MovieInterface[] = [];
   limit: number = 4; // 4 filmes no maximo por vez
   currentOffset: number = 0; // controle de visualização de filmes
+  editingMovie: any;// filme em edição
 
   constructor(private databaseService: DatabaseService) {}
 
@@ -35,21 +37,29 @@ export class HomeComponent {
     })
   }
 
-  updateMovie(id:string){
-    this.showAddMovieModal = !this.showAddMovieModal; 
-    
-    this.databaseService.deleteDocument('movies',id).then(()=>{
-      console.log("Documento excluído com sucesso.")
+  updateMovie(formData: any){
+    this.databaseService.updateDocument('movies',this.editingMovie.id,formData).then(()=>{
+      console.log("Documento atualizado com sucesso."),
+      this.editMovieModal = !this.editMovieModal; 
     }).catch(error=>{
       console.log(error)
-    })
-
-     
+    });
   }
+  
 
   toggleAddMovieModal(){
     this.showAddMovieModal = !this.showAddMovieModal; 
   }
+
+  toggleEditMovieModal(movie: MovieInterface){
+    this.editingMovie = movie;
+    this.editMovieModal = !this.editMovieModal; 
+  }
+
+  closeEditMovieModal(){
+    this.editMovieModal = !this.editMovieModal;
+  }
+
 
   filterMovies(): void {
     const query = this.searchQuery.trim().toLowerCase();
