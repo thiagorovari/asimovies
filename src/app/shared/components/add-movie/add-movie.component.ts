@@ -1,7 +1,9 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DatabaseService } from '../../services/database.service';
 import { AngularFireStorage } from '@angular/fire/compat/storage';
+import { finalize } from 'rxjs/operators';
+
 
 @Component({
   selector: 'app-add-movie',
@@ -14,19 +16,33 @@ export class AddMovieComponent {
   selectedFile: File | null = null; // foto do filme
   previewUrl: string | null = null; // pré visualização da imagem do filme
 
+  @Input() editingMovie: any = null; // 🔹 Recebe o filme a ser editado
+
   constructor(
     private fb: FormBuilder,
     private databaseService: DatabaseService,
     private storage: AngularFireStorage
   ) {}
 
-  ngOnInit(){
+  ngOnInit() {
     this.movieForm = this.fb.group({
       name: ['', [Validators.required]],
       rating: [0, [Validators.required]],
       analysis: ['', [Validators.required]],
       photo_path: ['']
     });
+  
+    // 🔹 Se estiver editando um filme, preencher o formulário
+    if (this.editingMovie) {
+      this.movieForm.patchValue({
+        name: this.editingMovie.name,
+        rating: this.editingMovie.rating,
+        analysis: this.editingMovie.analysis,
+        photo_path: this.editingMovie.photo_path
+      });
+  
+      this.previewUrl = this.editingMovie.photo_path;
+    }
   }
 
   setRating(rating: number) {
@@ -47,38 +63,73 @@ export class AddMovieComponent {
     }
   }
 
-  onSubmit(){
-  if (this.movieForm.valid) {
-    const formData = this.movieForm.value;
+  onSubmit() {
+    if (this.movieForm.valid) {
+      const formData = this.movieForm.value;
 
-    if (this.selectedFile) {
-      const filePath = `movies/${this.selectedFile.name}`;
-      const fileRef = this.storage.ref(filePath);
-      const task = this.storage.upload(filePath, this.selectedFile);
+      // 🔹 Se houver uma imagem, faça o upload primeiro
+      if (this.selectedFile) {
+        const filePath = `movies/${new Date().getTime()}_${this.selectedFile.name}`;
+        const fileRef = this.storage.ref(filePath);
+        const uploadTask = this.storage.upload(filePath, this.selectedFile);
 
-      task.snapshotChanges().subscribe(() => {
-        fileRef.getDownloadURL().subscribe((url) => {
-          formData.photo_path = url;
-          this.databaseService.addDocument('movies', formData).then(() => {
-            console.log('Documento Adicionado!');
-            this.movieForm.reset();
-            this.previewUrl = null;
-            this.selectedFile = null;
-          }).catch((error) => {
-            console.log(error);
-          });
-        });
-      });
-    } else {
-      this.databaseService.addDocument('movies', formData).then(() => {
-        console.log('Documento Adicionado!');
-        this.movieForm.reset();
-      }).catch((error) => {
-        console.log(error);
-      });
+        uploadTask.snapshotChanges().pipe(
+          finalize(() => {
+            fileRef.getDownloadURL().subscribe((url) => {
+              formData.photo_path = url; // Atualiza a URL da imagem
+
+              if (this.editingMovie) {
+                this.updateMovie(formData);
+              } else {
+                this.addMovie(formData);
+              }
+            });
+          })
+        ).subscribe();
+      } else {
+        // Se não houver imagem nova, edita com os dados antigos
+        if (this.editingMovie) {
+          this.updateMovie(formData);
+        } else {
+          this.addMovie(formData);
+        }
+      }
     }
   }
+  private saveMovieData(formData: any) {
+    this.databaseService.addDocument('movies', formData).then(() => {
+      console.log('Filme adicionado com sucesso!');
+      this.movieForm.reset();
+      this.previewUrl = null; // Reseta a pré-visualização da imagem
+      this.selectedFile = null;
+    }).catch((error) => {
+      console.error('Erro ao adicionar filme:', error);
+    });
   }
+  // 🔹 Atualizar Filme
+private updateMovie(formData: any) {
+  this.databaseService.updateDocument('movies', this.editingMovie.id, formData).then(() => {
+    console.log('Filme atualizado com sucesso!');
+    this.closeModal.emit(); // Fechar modal
+  }).catch((error) => {
+    console.error('Erro ao atualizar filme:', error);
+  });
+}
+
+// 🔹 Adicionar Novo Filme
+private addMovie(formData: any) {
+  this.databaseService.addDocument('movies', formData).then(() => {
+    console.log('Filme adicionado com sucesso!');
+    this.movieForm.reset();
+    this.previewUrl = null;
+    this.selectedFile = null;
+    this.closeModal.emit(); // Fechar modal
+  }).catch((error) => {
+    console.error('Erro ao adicionar filme:', error);
+  });
+}
+
+
 
   // variável que emite um evento para o componente da home
   @Output() closeModal = new EventEmitter<void>();
